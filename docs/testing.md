@@ -3,6 +3,13 @@
 Tests exist to let us change the system confidently. A test that breaks on a
 refactor without a behavior change is a liability, not an asset.
 
+**Test files are never committed to this repository.** The workflow is
+write → run locally → confirm it passes → delete the test file → then stage
+and push. No `*.spec.ts`, `*.e2e-spec.ts`, `*.int-spec.ts`, Vitest spec, or
+Playwright spec, and no `tests/`/`test/`/`e2e/` directory content, is ever
+pushed to GitHub. Everything below describes how tests are written and run
+locally during development — not what ends up in the pushed tree.
+
 ---
 
 ## 1. Layers
@@ -115,11 +122,14 @@ Run against the docker-compose stack with seeded data, in CI on every PR.
 On every pull request, in order:
 
 ```text
-typecheck  →  lint  →  boundary check  →  unit  →  integration  →  build  →  e2e
+typecheck  →  lint  →  boundary check  →  build
 ```
+
+There is no CI test-run step. Test files are deleted locally before every
+push (see the top of this document), so no spec files exist in the pushed
+tree for CI to execute. All test verification happens on the developer's
+machine, once, before the push — not in CI, not from the remote repo.
 
 `scripts/check-boundaries.ts` enforces the dependency rules from the root
 `CLAUDE.md`. A boundary violation fails the build like a type error — the
 architecture is machine-enforced, not merely documented.
-
-Flaky tests are quarantined and fixed within the week, never retried into green.

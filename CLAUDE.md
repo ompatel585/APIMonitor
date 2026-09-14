@@ -369,6 +369,12 @@ shared dev database. Business logic requires a test; presentational components
 generally do not. Coverage is a signal, not a target — an untested authorization
 path is a blocker regardless of the number.
 
+**Test files are never committed.** Write the test, run it locally, confirm it
+passes, then delete it before staging changes. Nothing matching `*.spec.ts`,
+`*.e2e-spec.ts`, `*.int-spec.ts`, or a `tests/`/`test/` directory reaches
+GitHub. This means CI does not run a test step — correctness is verified
+locally, once, before every push, not re-verified from the remote repo.
+
 Full strategy: `docs/testing.md`.
 
 ---

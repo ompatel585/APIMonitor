@@ -11,9 +11,11 @@
     "typecheck": "npm run typecheck --workspace=Backend && npm run typecheck --workspace=Frontend",
     "lint": "npm run lint --workspace=Backend && npm run lint --workspace=Frontend",
     "check-boundaries": "tsx scripts/check-boundaries.ts",
+    "generate-api-types": "tsx scripts/generate-api-types.ts",
     "test": "npm run test --workspace=Backend && npm run test --workspace=Frontend"
   },
   "devDependencies": {
+    "openapi-typescript": "7.5.2",
     "tsx": "4.19.2"
   }
 }

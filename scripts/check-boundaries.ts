@@ -5,19 +5,25 @@ const BACKEND_SRC = join(__dirname, '..', 'Backend', 'src');
 
 type Rule = {
   fromPrefix: string;
-  forbiddenImportPatterns: RegExp[];
+  forbiddenSpecifiers: RegExp[];
   message: string;
 };
+
+// Matches only the module specifier of an actual import/require statement,
+// e.g. `from '@modules/x'` or `require("../../modules/x")` — never an
+// unrelated string literal (like a TypeORM entity glob) that merely contains
+// the substring "modules/" or "workers/".
+const IMPORT_STATEMENT = /(?:from\s+|require\()\s*['"]([^'"]+)['"]/g;
 
 const RULES: Rule[] = [
   {
     fromPrefix: 'infrastructure/',
-    forbiddenImportPatterns: [/['"].*\/modules\//, /['"]@modules\//, /['"].*\/workers\//, /['"]@workers\//],
+    forbiddenSpecifiers: [/^@modules\//, /\/modules\//, /^@workers\//, /\/workers\//],
     message: 'infrastructure/ must never import from modules/ or workers/',
   },
   {
     fromPrefix: 'common/',
-    forbiddenImportPatterns: [/['"].*\/modules\//, /['"]@modules\//, /['"].*\/workers\//, /['"]@workers\//],
+    forbiddenSpecifiers: [/^@modules\//, /\/modules\//, /^@workers\//, /\/workers\//],
     message: 'common/ must never import from modules/ or workers/',
   },
 ];
@@ -44,11 +50,14 @@ function main(): void {
     if (!rule) continue;
 
     const content = readFileSync(file, 'utf-8');
-    for (const pattern of rule.forbiddenImportPatterns) {
-      if (pattern.test(content)) {
-        violations.push(`${relPath}: ${rule.message}`);
-        break;
-      }
+    const specifiers = [...content.matchAll(IMPORT_STATEMENT)].map((match) => match[1]);
+
+    const hasViolation = specifiers.some((specifier) =>
+      rule.forbiddenSpecifiers.some((pattern) => pattern.test(specifier ?? '')),
+    );
+
+    if (hasViolation) {
+      violations.push(`${relPath}: ${rule.message}`);
     }
   }
 
