@@ -21,8 +21,14 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 
-# testing
+# testing — test files are written, run locally, then deleted; never pushed
 coverage/
+*.spec.ts
+*.spec.tsx
+*.e2e-spec.ts
+*.int-spec.ts
+*.test.ts
+*.test.tsx
 
 # editors
 .vscode/*

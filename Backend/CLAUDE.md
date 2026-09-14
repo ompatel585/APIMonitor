@@ -337,6 +337,13 @@ Every authorization path gets a test proving a foreign tenant cannot read or
 write the resource. Monitor execution tests hit a local fixture server, never the
 public internet. Fixtures/factories live in `test/fixtures/`.
 
+**Test files are write-run-delete, never committed.** Write the spec, run it,
+confirm it passes, then delete it before staging for commit. No `*.spec.ts`,
+`*.e2e-spec.ts`, `*.int-spec.ts`, or `tests/`/`test/` directory content is ever
+pushed to GitHub for this repo. Verification happens locally on the developer's
+machine before every push; there is no CI test-run step because there is no
+committed test file for CI to run.
+
 ---
 
 ## 18. Forbidden in `Backend/`
