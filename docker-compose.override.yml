@@ -1,0 +1,22 @@
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  backend-api:
+    volumes:
+      - ./Backend:/app/Backend
+      - /app/Backend/node_modules
+    ports:
+      - "3001:3001"
+
+  frontend:
+    volumes:
+      - ./Frontend:/app/Frontend
+      - /app/Frontend/node_modules
+    ports:
+      - "3000:3000"
