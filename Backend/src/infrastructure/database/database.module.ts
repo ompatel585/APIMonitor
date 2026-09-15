@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import type { DatabaseConfig } from '@config/database.config';
 import type { AppConfig } from '@config/app.config';
 import { TransactionService } from './transaction.service';
 
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
@@ -16,8 +17,8 @@ import { TransactionService } from './transaction.service';
         return {
           type: 'postgres' as const,
           url: database.url,
-          entities: ['dist/modules/**/entities/*.entity.js'],
-          migrations: ['dist/infrastructure/database/migrations/*.js'],
+          entities: [`${__dirname}/../../modules/**/entities/*.entity{.ts,.js}`],
+          migrations: [`${__dirname}/migrations/*{.ts,.js}`],
           synchronize: false,
           poolSize: database.poolSize,
           logging: app.nodeEnv === 'development',

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type Redis from 'ioredis';
-import { REDIS_CACHE_CLIENT } from './redis.module';
+import { REDIS_CACHE_CLIENT } from './redis.constants';
 
 const RELEASE_SCRIPT = `
 if redis.call("get", KEYS[1]) == ARGV[1] then
