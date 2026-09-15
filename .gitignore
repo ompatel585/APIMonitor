@@ -9,6 +9,7 @@ build/
 .next/
 out/
 *.tsbuildinfo
+Backend/openapi.json
 
 # env
 .env

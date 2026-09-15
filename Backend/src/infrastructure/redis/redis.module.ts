@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import type { RedisConfig } from '@config/redis.config';
+import { REDIS_CACHE_CLIENT } from './redis.constants';
 import { CacheService } from './cache.service';
 import { LockService } from './lock.service';
 
-export const REDIS_CACHE_CLIENT = 'REDIS_CACHE_CLIENT';
-
+@Global()
 @Module({
   providers: [
     {
