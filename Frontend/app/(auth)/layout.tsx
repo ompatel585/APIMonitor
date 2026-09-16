@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/providers/auth-provider';
+import { useAuthSession } from '@/hooks/use-auth-session';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   const router = useRouter();
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated } = useAuthSession();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {

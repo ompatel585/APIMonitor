@@ -2,15 +2,15 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/providers/auth-provider';
-import { useLogout } from '@/features/auth';
-import { Button } from '@/shared/ui/button';
-import { FullPageSpinner } from '@/shared/components/loading/full-page-spinner';
+import { useAuthSession } from '@/hooks/use-auth-session';
+import { useLogoutMutation } from '@/api/auth.api';
+import { Button } from '@/components/button';
+import { FullPageSpinner } from '@/components/full-page-spinner';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }): React.JSX.Element {
   const router = useRouter();
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const logout = useLogout();
+  const { user, isLoading, isAuthenticated } = useAuthSession();
+  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -19,7 +19,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [isLoading, isAuthenticated, router]);
 
   const handleLogout = (): void => {
-    logout.mutate(undefined, { onSuccess: () => router.push('/login') });
+    logout()
+      .unwrap()
+      .then(() => router.push('/login'))
+      .catch(() => undefined);
   };
 
   if (isLoading || !isAuthenticated) {
@@ -32,7 +35,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <span className="text-sm font-semibold">APIMonitor</span>
         <div className="flex items-center gap-4">
           {user ? <span className="text-sm text-muted-foreground">{user.email}</span> : null}
-          <Button variant="outline" size="sm" onClick={handleLogout} disabled={logout.isPending}>
+          <Button variant="outline" size="sm" onClick={handleLogout} disabled={isLoggingOut}>
             Log out
           </Button>
         </div>
