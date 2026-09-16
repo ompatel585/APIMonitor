@@ -11,22 +11,30 @@ here is a convenience; the backend is the authority.
 
 ## 1. Stack
 
-Next.js (App Router) · React · TypeScript strict · TanStack Query · Zod ·
-Tailwind CSS · Zustand (sparingly) · Vitest + Testing Library · Playwright.
+Next.js (App Router) · React · TypeScript strict · Redux Toolkit + RTK Query ·
+Zod · Tailwind CSS · Vitest + Testing Library · Playwright.
 
 ---
 
 ## 2. Layers
 
+Every layer below is a **top-level directory directly under `Frontend/`**.
+There is no domain nesting above `sections/` and `views/` — a domain gets one
+subfolder inside each of `api/`, `sections/`, `views/`, `schemas/`; it never
+gets its own top-level directory.
+
 ```text
 app/          Route composition. Layouts, pages, loading/error boundaries. NO business logic.
-features/     Domain-owned UI, hooks, API bindings, schemas, types. The bulk of the code.
-shared/       Domain-agnostic UI primitives and composites. Knows nothing about monitors.
-services/     Typed backend API clients. One module per backend domain.
-lib/          Infrastructure wiring: http client, query client, socket, env, logger, dates.
-hooks/        Generic, domain-free React hooks.
-stores/       Global CLIENT state only. Small. See §7.
-providers/    React context providers composed at the root.
+views/        Orchestrators. views/<domain>/. Call api/ hooks, compose sections/. The "smart" layer.
+sections/     Presentational pieces. sections/<domain>/. Props in, JSX out. No data-fetching.
+api/          RTK Query slices. api/<domain>.api.ts, injected into the single shared base-api.
+store/        Redux store setup: base-query, base-api, root store, typed hooks, UI slices.
+components/   Domain-agnostic UI primitives and composites. Knows nothing about monitors.
+schemas/      Zod schemas. schemas/<domain>/. Source of truth for form types.
+constants/    Domain-agnostic OR domain constants that don't warrant their own module.
+hooks/        Generic, domain-free React hooks (plus small cross-domain hooks like org-id lookup).
+lib/          Infrastructure wiring: env, dates, class-name helper.
+providers/    React context / Redux providers composed at the root.
 config/       Routes, navigation, permissions, constants. Static configuration.
 types/        Cross-cutting types + the generated API contract.
 styles/       Tailwind layers, theme tokens, CSS variables.
@@ -36,30 +44,49 @@ middleware.ts Edge middleware: auth redirects and route protection only.
 ### Dependency direction
 
 ```text
-app  →  features  →  services → lib
-                 ↘  shared   → lib
+app  →  views  →  sections → components → lib
+              ↘  api      → store      → lib
 ```
 
-- `app/` may import from `features/`, `shared/`, `config/`, `providers/`.
-- `features/` may import from `shared/`, `services/`, `lib/`, `hooks/`,
-  `config/`, `types/`, `stores/`.
-- `shared/` may import from `lib/`, `hooks/`, `types/`, `styles/` — **never from
-  `features/`, `services/`, or `stores/`**.
-- `lib/` imports only third-party code and `config/`.
-- Feature A imports Feature B **only** through `features/b/index.ts`. Reaching
-  into `features/b/components/...` from feature A is forbidden.
+- `app/` route **pages** may import from `views/`, `providers/`, `config/`.
+  They do **not** import `sections/` or `api/` directly — a page renders
+  exactly one View. A route **layout** (`layout.tsx`) is shell chrome shared
+  by every page under it, not a page itself — it may call a small, trivial
+  `api/` hook directly (e.g. the dashboard shell's logout button) when that
+  chrome does not belong to any single View. Prefer a View when the logic
+  grows past a couple of lines.
+- `views/<domain>/` may import from `api/<domain>.api.ts`, `sections/<domain>/`,
+  `sections/<other-domain>/` (cross-domain composition is expected at the view
+  layer), `components/`, `hooks/`, `schemas/<domain>/`, `constants/`.
+- `sections/<domain>/` may import from `components/`, `hooks/`, `constants/`,
+  `types/`. **Sections never call an API hook and never import from `api/` or
+  `store/`.** A section receives everything through props. A **type-only**
+  import from `api/<domain>.api.ts` (e.g. `import type { Monitor } from
+  '@/api/monitors.api'`) is fine — it costs nothing at runtime and lets a
+  section's props stay in sync with the OpenAPI contract. The forbidden thing
+  is a *value* import: a hook, `baseApi`, `store`, or a dispatch.
+- `api/` may import from `store/` (to reuse `baseApi`) and `types/`. It never
+  imports `sections/` or `views/`.
+- `components/` may import from `lib/`, `hooks/`, `types/`, `styles/` — never
+  from `sections/`, `views/`, or `api/`.
+- `store/` imports only third-party code and `config/`.
+- One domain's `sections/`/`views/` files reach another domain's `sections/`
+  only through that domain's files directly — there is no `index.ts`
+  re-export gate the way features used to have one; keep cross-domain imports
+  intentional and reviewed.
 
 ---
 
 ## 3. `app/` — Route Composition Only
 
-A page file should read as an assembly of feature components. Concretely, a page
-may: read route params and search params, check auth/redirect, set metadata,
-prefetch queries for hydration, and render feature components inside layout.
+A page file renders exactly one View and nothing else. Concretely, a page may:
+read route params and search params, set metadata, and render a single
+`views/<domain>/XView`.
 
 A page must **not**: contain data transformation, business rules, validation
-logic, direct `fetch` calls with hand-written URLs, or inline component
-definitions longer than a few lines.
+logic, direct `fetch` calls, call an `api/` hook itself, render a `sections/`
+component directly, or contain inline component definitions longer than a few
+lines.
 
 ```text
 app/
@@ -78,10 +105,6 @@ app/
 └── api/                  Route Handlers — see §4
 ```
 
-Removed from the original sketch: `app/sitemap/` (Next.js uses
-`app/sitemap.ts`, a file, not a folder). Added: `settings/team` (membership
-management is required by the authorization model).
-
 Every route segment gets `loading.tsx` and `error.tsx`. Dynamic segments
 validate their params before use.
 
@@ -98,94 +121,106 @@ never talk to a database, never import backend code.
 
 ---
 
-## 4. `features/` — Domain Ownership
+## 4. `views/` — Orchestrators
 
-One directory per domain. A feature owns its UI, its data access, its schemas,
-and its types.
+One subfolder per domain: `views/<domain>/`. A View is the only thing a route
+renders. It owns: calling `api/` hooks, deriving loading/error/empty state,
+composing one or more `sections/` components, and wiring callbacks (mutations,
+navigation) down into them as props.
 
 ```text
-features/<domain>/
-├── index.ts          PUBLIC API. The only file other features may import.
-├── api/              Query/mutation hooks + query key factory. Calls services/.
-├── components/       Domain components. Subfolder only when there are enough files to warrant it.
-├── hooks/            Domain hooks that are not data fetching.
-├── schemas/          Zod schemas for forms (only where the feature has forms).
-├── types/            Domain view models. Re-export generated API types; do not redefine them.
-├── constants/        Domain constants.
-└── utils/            Domain-pure functions.
+views/<domain>/
+└── XView.tsx     e.g. views/monitors/MonitorCreateView.tsx
 ```
 
-Create a subdirectory only when a file goes in it. A feature with four components
-uses a flat `components/`, not `components/{cards,tables,forms,dialogs}/`.
+A View contains **no markup of its own beyond simple layout wrappers** — the
+actual presentation is a `sections/` component. A View is where you'd look to
+answer "what API calls does this screen make and what does it do on success."
 
 Domains: `auth`, `dashboard`, `projects`, `monitors`, `monitor-checks`,
 `incidents`, `alerts`, `status-pages`, `users`, `billing`, `api-keys`.
 
-`index.ts` exports only what other features and `app/` legitimately need —
-typically a handful of components and hooks. Everything else stays internal.
-
 ---
 
-## 5. `shared/` vs `features/`
+## 5. `sections/` — Presentational Pieces
 
-`shared/` holds code that would still make sense in a completely different
-product. If it mentions a monitor, an incident, or an organization, it is not
-shared.
+One subfolder per domain: `sections/<domain>/`. A section is a dumb component:
+props in, JSX out. No `api/` import, no Redux dispatch, no data-fetching hook of
+any kind. Anything it needs — data, callbacks, loading state — arrives as a
+prop from the View that renders it.
 
 ```text
-shared/
-├── ui/            Primitives: Button, Input, Select, Dialog, Card, Badge, Table, Toast…
-├── components/    Composites: layout, navigation, feedback, data-display, empty-state, loading, error
-├── forms/         Form field wrappers bound to react-hook-form + Zod
-├── charts/        Generic chart wrappers (a StatusTimeline is a feature component, not this)
-├── icons/
-├── layouts/
-└── providers/     Presentation-level providers (theme)
+sections/<domain>/
+└── XCard.tsx, XFields.tsx, XTable.tsx, XTableRow.tsx, XEmptyState.tsx …
 ```
 
-**`shared/` is not a dumping ground.** Something goes here only after it is used
-by two or more features and has been made domain-agnostic. One-off code stays in
-its feature.
+This is what used to be `features/<domain>/components/`. The rename reflects
+the new rule: these files may not reach into `api/` themselves anymore — only
+the View above them may.
 
 ---
 
-## 6. Data Fetching — TanStack Query
+## 6. `components/` vs `sections/`
 
-- All server data flows through TanStack Query. No `useEffect` + `fetch`.
-- Every feature defines a **query key factory** in `features/<domain>/api/keys.ts`.
-  Never write a query key inline.
-  ```ts
-  export const monitorKeys = {
-    all: ['monitors'] as const,
-    lists: () => [...monitorKeys.all, 'list'] as const,
-    list: (filters: MonitorFilters) => [...monitorKeys.lists(), filters] as const,
-    details: () => [...monitorKeys.all, 'detail'] as const,
-    detail: (id: string) => [...monitorKeys.details(), id] as const,
-  };
-  ```
-- Components never call `services/` directly. They use the feature's hooks.
-- Mutations invalidate precisely — the affected keys, not `queryClient.clear()`.
-- Optimistic updates require a rollback in `onError`.
-- Pagination uses `useInfiniteQuery` with the backend's cursor.
-- `staleTime` is set deliberately per query. Monitor status is short-lived;
-  organization settings are long-lived.
-- Server-rendered pages prefetch on the server and hydrate; they do not fetch
-  twice.
+`components/` holds code that would still make sense in a completely different
+product. If it mentions a monitor, an incident, or an organization, it belongs
+in `sections/<that-domain>/`, not `components/`.
 
-### `services/`
+```text
+components/
+├── button.tsx, input.tsx, select.tsx, dialog.tsx, card.tsx, badge.tsx, table.tsx, toast.tsx …  (primitives)
+├── error-message.tsx, full-page-spinner.tsx                                                    (composites)
+├── icons/
+└── layouts/
+```
 
-One module per backend domain, mirroring the backend's resources. A service
-function takes typed params, calls the shared HTTP client, and returns a typed
-response from `types/api/generated.ts`. Services contain **no React** and **no
-business logic** — they are transport.
-
-The HTTP client (`lib/http/`) is configured once: base URL, credentials, request
-id propagation, access-token refresh on 401 with a single in-flight refresh, and
-translation of the backend error envelope into a typed `ApiError`.
+**`components/` is not a dumping ground.** Something goes here only once it is
+domain-agnostic. One-off, domain-specific code stays in `sections/<domain>/`.
 
 ---
 
-## 7. State Management
+## 7. Data Fetching — RTK Query
+
+- All server data flows through RTK Query. No `useEffect` + `fetch`, no
+  hand-rolled service client.
+- There is exactly **one** `createApi` instance: `store/base-api.ts`
+  (`baseApi`). Every domain injects its endpoints into it via
+  `baseApi.injectEndpoints(...)` in `api/<domain>.api.ts`. This is what lets one
+  domain's mutation invalidate another domain's tag (e.g. `auth`'s login
+  invalidates `users`' `CurrentUser` tag) without cross-module dispatch
+  gymnastics.
+- `store/base-query.ts` wraps `fetchBaseQuery`: sets the base URL from
+  `lib/env/client.ts`, attaches the in-memory access token, sets
+  `x-request-id`, and on a `401` (except from `/auth/refresh` itself) acquires
+  an `async-mutex` `Mutex`, calls `/auth/refresh` once, and retries the
+  original request with the new token — or clears the token and lets the 401
+  propagate.
+- Tag types are declared once on `baseApi` (`CurrentUser`, `Membership`,
+  `Project`, `Monitor`, …) and referenced by every domain's `providesTags` /
+  `invalidatesTags`. A mutation that invalidates everything is a defect.
+- Optimistic updates use `onQueryStarted` with `dispatch(api.util.updateQueryData(...))`
+  and `patch.undo()` in the `catch`.
+- Cursor pagination uses RTK Query's `serializeQueryArgs` / merge pattern for
+  high-volume collections (checks, incidents).
+- `keepUnusedDataFor` is set deliberately per endpoint. Monitor status is
+  short-lived; organization settings are long-lived.
+
+```text
+sections component (props) ← views/<domain>/XView.tsx ← api/<domain>.api.ts (RTK Query hook) ← store/base-query.ts
+```
+
+### `api/`
+
+One file per backend domain: `api/<domain>.api.ts`. Each file injects its
+endpoints into the shared `baseApi` and exports the generated hooks
+(`useLoginMutation`, `useListProjectsQuery`, …). An `api/` file contains **no
+JSX** — it is the RTK Query slice only. Request/response types come from
+`types/api/generated.ts`; never hand-write a type that duplicates the OpenAPI
+contract.
+
+---
+
+## 8. State Management
 
 Pick the leftmost option that works:
 
@@ -193,70 +228,72 @@ Pick the leftmost option that works:
 | --- | --- |
 | Filters, tabs, pagination, selected id, search | **URL** (`searchParams`) — shareable, back-button correct |
 | Open/closed, hover, input draft, step index | **local `useState`** |
-| Passing a value down one subtree | **Context** (theme, current org) |
-| Anything that came from or goes to the backend | **TanStack Query** |
-| Global client-only state used across unrelated routes | **Zustand** |
+| Passing a value down one subtree | **Context** (theme) |
+| Anything that came from or goes to the backend | **RTK Query cache** (`store/base-api.ts`) |
+| Global client-only UI state used across unrelated routes | **A small Redux slice in `store/`** |
 
-**Zustand rules.** Permitted stores: sidebar/UI shell state, theme preference,
-command palette, and transient cross-route client state. A store must not hold
+**Redux slice rules.** Permitted: sidebar/UI shell state, theme preference,
+the auth "logged out" sticky flag, command palette state. A slice must not hold
 server data — no monitors, no incidents, no user profile fetched from the API.
-Caching server data in Zustand duplicates the query cache and is a defect.
-Stores are small, sliced, and typed; no single "app store" god object.
+Duplicating RTK Query's own cache in a hand-written slice is a defect. Slices
+are small and typed; there is one root reducer (`store/index.ts`) composed of
+`baseApi.reducer` plus a handful of small UI slices — no single "app state" god
+slice.
 
 ---
 
-## 8. Server / Client Boundaries
+## 9. Server / Client Boundaries
 
 - **Server Components are the default.** Add `'use client'` only when you need
-  state, effects, browser APIs, or event handlers.
-- Push `'use client'` to the leaves. A page should not become a client component
-  because one button needs `onClick`.
-- Server-only modules (anything reading a non-`NEXT_PUBLIC_` env var, or holding
-  a secret) import `server-only` at the top. Browser-only modules import
-  `client-only`.
-- Secrets never reach a client component — not as a prop, not in a store, not in
-  a serialized payload. Only `NEXT_PUBLIC_*` values exist in the browser.
-- Server Actions are permitted for form submissions that do not need optimistic
-  client state; they validate with the same Zod schema and call the backend API.
-  They are not a place for business logic.
+  state, effects, browser APIs, event handlers, or a Redux/RTK Query hook.
+- Push `'use client'` to the leaves. A page should not become a client
+  component because one button needs `onClick`.
+- Server-only modules (anything reading a non-`NEXT_PUBLIC_` env var, or
+  holding a secret) import `server-only` at the top. Browser-only modules
+  (including `store/base-query.ts`) import `client-only`.
+- Secrets never reach a client component — not as a prop, not in the Redux
+  store, not in a serialized payload. Only `NEXT_PUBLIC_*` values exist in the
+  browser.
 - `middleware.ts` does auth redirects and route protection only. No data
   fetching, no business rules.
 
 ---
 
-## 9. Validation
+## 10. Validation
 
-- Zod for every form. Schema lives in `features/<domain>/schemas/`.
+- Zod for every form. Schema lives in `schemas/<domain>/`.
 - The schema is the single source of truth for the form's types
   (`z.infer<typeof schema>`). Do not hand-write a matching interface.
 - Client validation is UX. The backend validates independently and its errors
-  are surfaced by mapping the error envelope's field errors back onto the form.
+  are surfaced by mapping the error envelope back onto the form.
 
 ---
 
-## 10. Real-Time
+## 11. Real-Time
 
 The socket client lives in `lib/socket/` and is provided once via
-`providers/socket-provider`. Feature code subscribes through a hook in
-`features/<domain>/hooks/`, never by importing the raw socket.
+`providers/socket-provider`. A View subscribes through a hook in `hooks/` or a
+small domain hook, never by importing the raw socket.
 
-Incoming events update the TanStack Query cache (`setQueryData` or a targeted
-invalidation). They do not write to Zustand. Every subscription unsubscribes on
-unmount. The UI must render correctly with the socket disconnected — real-time is
-an enhancement, not a requirement.
-
----
-
-## 11. Styling
-
-Tailwind only. No CSS-in-JS, no per-component `.css` files. Design tokens are CSS
-variables in `styles/`; never hardcode a hex value in a component. Variants come
-from `cva`. Conditional classes go through the `cn()` helper. Dark mode is a
-class strategy and every component must work in both themes.
+Incoming events patch the RTK Query cache directly
+(`dispatch(api.util.updateQueryData(...))`) or trigger a targeted
+`invalidateTags`. They do not write to a Redux UI slice. Every subscription
+unsubscribes on unmount. The UI must render correctly with the socket
+disconnected — real-time is an enhancement, not a requirement.
 
 ---
 
-## 12. Testing
+## 12. Styling
+
+Tailwind only. No CSS-in-JS, no per-component `.css` files. Design tokens are
+CSS variables in `styles/`; never hardcode a hex value in a component. Variants
+come from `cva`. Conditional classes go through the `cn()` helper in
+`lib/utils/cn.ts`. Dark mode is a class strategy and every component must work
+in both themes.
+
+---
+
+## 13. Testing
 
 - Vitest + Testing Library, colocated with the code.
 - Test behavior through the accessible interface (roles, labels), not
@@ -269,19 +306,20 @@ class strategy and every component must work in both themes.
 
 ---
 
-## 13. Forbidden in `Frontend/`
+## 14. Forbidden in `Frontend/`
 
 - importing anything from `Backend/`
 - TypeORM, `pg`, `bullmq`, `ioredis`, or any server-side dependency
 - business logic in `app/` pages, layouts, or middleware
 - `useEffect` + `fetch` for server data
-- server data stored in Zustand or Context
-- inline query keys
-- a raw `fetch` to the backend outside `services/`
-- `shared/` importing from `features/`
-- feature A importing feature B's internals
+- server data stored in a Redux slice or Context
+- a second `createApi` instance — everything injects into the one `baseApi`
+- a `sections/<domain>/` component importing from `api/` or `store/`
+- an `app/` page rendering a `sections/` component directly (must go through a View)
+- creating a top-level domain directory instead of a subfolder under
+  `sections/`, `views/`, `api/`, or `schemas/`
 - hardcoded API URLs or colors
 - `any`, `@ts-ignore`, non-null assertions used to silence the compiler
 - reading `process.env` outside `lib/env/`
 - exposing a non-`NEXT_PUBLIC_` value to a client component
-- adding a global store because prop drilling felt tedious
+- adding a Redux slice because prop drilling felt tedious

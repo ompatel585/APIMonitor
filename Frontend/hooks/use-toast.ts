@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { ToastVariant } from '@/shared/ui/toast';
+import type { ToastVariant } from '@/components/toast';
 
 type ToastItem = {
   id: string;
