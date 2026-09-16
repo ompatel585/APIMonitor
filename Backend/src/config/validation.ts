@@ -26,6 +26,9 @@ class EnvironmentVariables {
   APP_PORT!: number;
 
   @IsString()
+  CORS_ORIGIN!: string;
+
+  @IsString()
   DATABASE_URL!: string;
 
   @IsInt()

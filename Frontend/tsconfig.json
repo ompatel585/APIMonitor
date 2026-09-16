@@ -24,7 +24,10 @@
       "@/services/*": ["services/*"],
       "@/lib/*": ["lib/*"],
       "@/config/*": ["config/*"],
-      "@/types/*": ["types/*"]
+      "@/types/*": ["types/*"],
+      "@/providers/*": ["providers/*"],
+      "@/hooks/*": ["hooks/*"],
+      "@/stores/*": ["stores/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

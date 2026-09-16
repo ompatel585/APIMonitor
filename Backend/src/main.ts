@@ -14,6 +14,14 @@ async function bootstrap(): Promise<void> {
   app.useLogger(app.get(Logger));
   app.setGlobalPrefix('api/v1');
   app.use(cookieParser());
+
+  const configService = app.get(ConfigService);
+  const appConfig = configService.getOrThrow<AppConfig>('app');
+
+  app.enableCors({
+    origin: appConfig.corsOrigin,
+    credentials: true,
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -21,9 +29,6 @@ async function bootstrap(): Promise<void> {
       transform: true,
     }),
   );
-
-  const configService = app.get(ConfigService);
-  const appConfig = configService.getOrThrow<AppConfig>('app');
 
   const document = SwaggerModule.createDocument(
     app,
