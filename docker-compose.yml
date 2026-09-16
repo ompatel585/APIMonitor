@@ -42,6 +42,42 @@ services:
       DATABASE_URL: postgresql://apimonitor:apimonitor@postgres:5432/apimonitor
       REDIS_HOST: redis
 
+  backend-worker:
+    build:
+      context: .
+      dockerfile: Docker/backend/Dockerfile.dev
+    command: ["npm", "run", "start:worker"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      APP_ROLE: worker
+      DATABASE_URL: postgresql://apimonitor:apimonitor@postgres:5432/apimonitor
+      REDIS_HOST: redis
+
+  backend-scheduler:
+    build:
+      context: .
+      dockerfile: Docker/backend/Dockerfile.dev
+    command: ["npm", "run", "start:scheduler"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      APP_ROLE: scheduler
+      DATABASE_URL: postgresql://apimonitor:apimonitor@postgres:5432/apimonitor
+      REDIS_HOST: redis
+    deploy:
+      replicas: 1
+
   frontend:
     build:
       context: .

@@ -34,8 +34,8 @@ export class MonitorsRepository {
     return manager ? manager.getRepository(Monitor) : this.repository;
   }
 
-  async findById(organizationId: string, id: string): Promise<Monitor | null> {
-    return this.repository.findOne({ where: { id, organizationId } });
+  async findById(organizationId: string, id: string, manager?: EntityManager): Promise<Monitor | null> {
+    return this.scope(manager).findOne({ where: { id, organizationId } });
   }
 
   async listByProject(organizationId: string, projectId: string): Promise<Monitor[]> {
@@ -43,6 +43,14 @@ export class MonitorsRepository {
       where: { organizationId, projectId },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  /**
+   * Cross-tenant by design — used only by the scheduler's reconciliation
+   * pass, which must rebuild every organization's schedule, not one tenant's.
+   */
+  async listAllActive(): Promise<Monitor[]> {
+    return this.repository.find({ where: { isActive: true } });
   }
 
   async create(data: CreateMonitorData, manager?: EntityManager): Promise<Monitor> {
@@ -62,7 +70,8 @@ export class MonitorsRepository {
   async updateStatusFields(
     id: string,
     data: { status: MonitorStatus; lastCheckAt: Date; lastLatencyMs: number | null },
+    manager?: EntityManager,
   ): Promise<void> {
-    await this.repository.update({ id }, data);
+    await this.scope(manager).update({ id }, data);
   }
 }
