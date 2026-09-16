@@ -1,29 +1,20 @@
-export type ApiErrorDetail = {
-  field: string;
-  message: string;
-};
-
 export type ApiErrorPayload = {
   code: string;
-  message: string;
-  details?: ApiErrorDetail[];
+  message: string | string[];
+  requestId?: string;
 };
 
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
-  readonly details: ApiErrorDetail[];
+  readonly requestId?: string;
 
   constructor(status: number, payload: ApiErrorPayload) {
-    super(payload.message);
+    super(Array.isArray(payload.message) ? payload.message.join(', ') : payload.message);
     this.name = 'ApiError';
     this.status = status;
     this.code = payload.code;
-    this.details = payload.details ?? [];
-  }
-
-  fieldError(field: string): string | undefined {
-    return this.details.find((detail) => detail.field === field)?.message;
+    this.requestId = payload.requestId;
   }
 
   static isApiError(error: unknown): error is ApiError {

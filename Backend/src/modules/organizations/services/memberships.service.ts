@@ -17,6 +17,10 @@ export class MembershipsService {
     return this.membershipsRepository.findByOrganizationAndUser(organizationId, userId);
   }
 
+  async listForUser(userId: string): Promise<Membership[]> {
+    return this.membershipsRepository.listByUser(userId);
+  }
+
   async assertActorIsMember(organizationId: string, actorUserId: string): Promise<Membership> {
     const membership = await this.membershipsRepository.findByOrganizationAndUser(
       organizationId,

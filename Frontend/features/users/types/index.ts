@@ -1,3 +1,5 @@
+import type { components } from '@/types/api/generated';
+
 export type CurrentUser = {
   id: string;
   email: string;
@@ -5,3 +7,5 @@ export type CurrentUser = {
   isEmailVerified: boolean;
   createdAt: string;
 };
+
+export type Membership = components['schemas']['MembershipResponseDto'];
