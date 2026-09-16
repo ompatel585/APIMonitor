@@ -4,6 +4,7 @@ import { appConfig } from './app.config';
 import { authConfig } from './auth.config';
 import { databaseConfig } from './database.config';
 import { mailConfig } from './mail.config';
+import { monitorChecksConfig } from './monitor-checks.config';
 import { queueConfig } from './queue.config';
 import { redisConfig } from './redis.config';
 import { validateEnv } from './validation';
@@ -14,7 +15,7 @@ import { validateEnv } from './validation';
       isGlobal: true,
       cache: true,
       validate: validateEnv,
-      load: [appConfig, authConfig, databaseConfig, redisConfig, queueConfig, mailConfig],
+      load: [appConfig, authConfig, databaseConfig, redisConfig, queueConfig, mailConfig, monitorChecksConfig],
     }),
   ],
 })

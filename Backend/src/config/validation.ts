@@ -77,6 +77,11 @@ class EnvironmentVariables {
 
   @IsString()
   MAIL_FROM!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  MONITOR_CHECKS_RETENTION_DAYS?: number;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvironmentVariables {

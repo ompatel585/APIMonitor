@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppConfigModule } from '@config/config.module';
 import { DatabaseModule } from '@infrastructure/database/database.module';
@@ -16,13 +17,14 @@ import { HealthModule } from '@health/health.module';
 import { UsersModule } from '@modules/users/users.module';
 import { OrganizationsModule } from '@modules/organizations/organizations.module';
 import { AuthModule } from '@modules/auth/auth.module';
-import { ProjectsModule } from '@modules/projects/projects.module';
-import { MonitorsModule } from '@modules/monitors/monitors.module';
+import { ProjectsHttpModule } from '@modules/projects/projects-http.module';
+import { MonitorsHttpModule } from '@modules/monitors/monitors-http.module';
 
 @Module({
   imports: [
     AppConfigModule,
     AppLoggerModule,
+    EventEmitterModule.forRoot(),
     DatabaseModule,
     RedisModule,
     HttpModule,
@@ -32,8 +34,8 @@ import { MonitorsModule } from '@modules/monitors/monitors.module';
     UsersModule,
     OrganizationsModule,
     AuthModule,
-    ProjectsModule,
-    MonitorsModule,
+    ProjectsHttpModule,
+    MonitorsHttpModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: TypeOrmErrorFilter },

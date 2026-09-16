@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import type { EntityManager } from 'typeorm';
 import { NotFoundDomainException } from '@common/exceptions/not-found.exception';
 import { ValidationDomainException } from '@common/exceptions/validation.exception';
 import { assertUrlAllowed, SsrfViolationError } from '@infrastructure/http/ssrf-guard';
 import { ProjectsService } from '@modules/projects/services/projects.service';
 import { MonitorsRepository } from '../repositories/monitors.repository';
+import { MonitorScheduleService } from './monitor-schedule.service';
 import { assertTimeoutFitsInterval } from '../validators/timeout-interval.validator';
 import { DEFAULT_TIMEOUT_MS } from '../constants/monitor-defaults';
-import { Monitor, type MonitorMethod } from '../entities/monitor.entity';
+import { Monitor, type MonitorMethod, type MonitorStatus } from '../entities/monitor.entity';
 
 type MonitorWriteFields = {
   name?: string;
@@ -28,6 +30,7 @@ export class MonitorsService {
   constructor(
     private readonly monitorsRepository: MonitorsRepository,
     private readonly projectsService: ProjectsService,
+    private readonly monitorScheduleService: MonitorScheduleService,
   ) {}
 
   async create(
@@ -38,7 +41,7 @@ export class MonitorsService {
     await this.assertUrlIsSafe(data.url);
     assertTimeoutFitsInterval(data.timeoutMs ?? DEFAULT_TIMEOUT_MS, data.intervalSeconds);
 
-    return this.monitorsRepository.create({
+    const monitor = await this.monitorsRepository.create({
       organizationId,
       projectId: data.projectId,
       name: data.name,
@@ -54,6 +57,9 @@ export class MonitorsService {
       consecutiveFailureThreshold: data.consecutiveFailureThreshold,
       consecutiveSuccessThreshold: data.consecutiveSuccessThreshold,
     });
+
+    await this.monitorScheduleService.registerJob(monitor.id, organizationId, monitor.intervalSeconds);
+    return monitor;
   }
 
   async listByProject(organizationId: string, projectId: string): Promise<Monitor[]> {
@@ -81,6 +87,11 @@ export class MonitorsService {
     assertTimeoutFitsInterval(nextTimeoutMs, nextIntervalSeconds);
 
     await this.monitorsRepository.update(organizationId, id, data);
+
+    if (existing.isActive && data.intervalSeconds && data.intervalSeconds !== existing.intervalSeconds) {
+      await this.monitorScheduleService.registerJob(id, organizationId, data.intervalSeconds);
+    }
+
     return this.findByIdOrThrow(organizationId, id);
   }
 
@@ -92,23 +103,44 @@ export class MonitorsService {
       lastCheckAt: new Date(),
       lastLatencyMs: null,
     });
+    await this.monitorScheduleService.removeJob(id);
     return this.findByIdOrThrow(organizationId, id);
   }
 
   async resume(organizationId: string, id: string): Promise<Monitor> {
-    await this.findByIdOrThrow(organizationId, id);
+    const monitor = await this.findByIdOrThrow(organizationId, id);
     await this.monitorsRepository.update(organizationId, id, { isActive: true });
     await this.monitorsRepository.updateStatusFields(id, {
       status: 'PENDING',
       lastCheckAt: new Date(),
       lastLatencyMs: null,
     });
+    await this.monitorScheduleService.registerJob(id, organizationId, monitor.intervalSeconds);
     return this.findByIdOrThrow(organizationId, id);
   }
 
   async remove(organizationId: string, id: string): Promise<void> {
     await this.findByIdOrThrow(organizationId, id);
+    await this.monitorScheduleService.removeJob(id);
     await this.monitorsRepository.remove(organizationId, id);
+  }
+
+  /**
+   * Reads the monitor within the caller's transaction, then persists the
+   * status transition the caller already computed. The caller (`MonitorChecksService`)
+   * owns calling the pure `evaluate()` function — this method only applies
+   * the result, so status-transition logic never leaks into two places.
+   */
+  async findByIdForUpdate(organizationId: string, id: string, manager: EntityManager): Promise<Monitor | null> {
+    return this.monitorsRepository.findById(organizationId, id, manager);
+  }
+
+  async applyCheckResult(
+    id: string,
+    data: { status: MonitorStatus; lastCheckAt: Date; lastLatencyMs: number | null },
+    manager: EntityManager,
+  ): Promise<void> {
+    await this.monitorsRepository.updateStatusFields(id, data, manager);
   }
 
   private async assertUrlIsSafe(url: string): Promise<void> {
