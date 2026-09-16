@@ -52,6 +52,22 @@ export interface paths {
         patch: operations["UsersController_updateMe"];
         trace?: never;
     };
+    "/api/v1/users/me/memberships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["UsersController_getMyMemberships"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations": {
         parameters: {
             query?: never;
@@ -292,12 +308,122 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{orgId}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProjectsController_list"];
+        put?: never;
+        post: operations["ProjectsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProjectsController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["ProjectsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["ProjectsController_update"];
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/projects/{projectId}/monitors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["MonitorsController_list"];
+        put?: never;
+        post: operations["MonitorsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/projects/{projectId}/monitors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["MonitorsController_findOne"];
+        put?: never;
+        post?: never;
+        delete: operations["MonitorsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["MonitorsController_update"];
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/projects/{projectId}/monitors/{id}/actions/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["MonitorsController_pause"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/projects/{projectId}/monitors/{id}/actions/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["MonitorsController_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        UserResponseDto: {
+            id: string;
+            email: string;
+            displayName: string;
+            isEmailVerified: boolean;
+            createdAt: string;
+        };
         UpdateUserDto: {
             displayName?: string;
+        };
+        MembershipResponseDto: {
+            userId: string;
+            organizationId: string;
+            /** @enum {string} */
+            role: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+            createdAt: string;
         };
         CreateOrganizationDto: {
             name: string;
@@ -330,6 +456,92 @@ export interface components {
         ConfirmPasswordResetDto: {
             token: string;
             newPassword: string;
+        };
+        CreateProjectDto: {
+            name: string;
+            description?: string;
+        };
+        ProjectResponseDto: {
+            id: string;
+            organizationId: string;
+            name: string;
+            description: string | null;
+            createdAt: string;
+        };
+        UpdateProjectDto: {
+            name?: string;
+            description?: string;
+        };
+        CreateMonitorDto: {
+            projectId: string;
+            name: string;
+            url: string;
+            /**
+             * @default GET
+             * @enum {string}
+             */
+            method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD";
+            headers?: {
+                [key: string]: string;
+            };
+            body?: string;
+            /** @enum {number} */
+            intervalSeconds: 30 | 60 | 300 | 600 | 900 | 1800 | 3600;
+            timeoutMs?: number;
+            /** @default [
+             *       200
+             *     ] */
+            expectedStatusCodes: number[];
+            /** @default true */
+            followRedirects: boolean;
+            degradedThresholdMs?: number;
+            consecutiveFailureThreshold?: number;
+            consecutiveSuccessThreshold?: number;
+        };
+        MonitorResponseDto: {
+            id: string;
+            organizationId: string;
+            projectId: string;
+            name: string;
+            url: string;
+            /** @enum {string} */
+            method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD";
+            headers: {
+                [key: string]: string;
+            } | null;
+            body: string | null;
+            intervalSeconds: number;
+            timeoutMs: number;
+            expectedStatusCodes: number[];
+            followRedirects: boolean;
+            degradedThresholdMs: number;
+            isActive: boolean;
+            consecutiveFailureThreshold: number;
+            consecutiveSuccessThreshold: number;
+            /** @enum {string} */
+            status: "PENDING" | "UP" | "DEGRADED" | "DOWN" | "PAUSED";
+            lastCheckAt: string | null;
+            lastLatencyMs: number | null;
+            createdAt: string;
+        };
+        UpdateMonitorDto: {
+            name?: string;
+            url?: string;
+            /** @enum {string} */
+            method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD";
+            headers?: {
+                [key: string]: string;
+            };
+            body?: string;
+            /** @enum {number} */
+            intervalSeconds?: 30 | 60 | 300 | 600 | 900 | 1800 | 3600;
+            timeoutMs?: number;
+            expectedStatusCodes?: number[];
+            followRedirects?: boolean;
+            degradedThresholdMs?: number;
+            consecutiveFailureThreshold?: number;
+            consecutiveSuccessThreshold?: number;
+            isActive?: boolean;
         };
     };
     responses: never;
@@ -478,7 +690,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UserResponseDto"];
+                };
             };
         };
     };
@@ -499,7 +713,28 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UserResponseDto"];
+                };
+            };
+        };
+    };
+    UsersController_getMyMemberships: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembershipResponseDto"][];
+                };
             };
         };
     };
@@ -840,6 +1075,280 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ProjectsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectResponseDto"][];
+                };
+            };
+        };
+    };
+    ProjectsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectResponseDto"];
+                };
+            };
+        };
+    };
+    ProjectsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectResponseDto"];
+                };
+            };
+        };
+    };
+    ProjectsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectResponseDto"];
+                };
+            };
+        };
+    };
+    MonitorsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorResponseDto"][];
+                };
+            };
+        };
+    };
+    MonitorsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMonitorDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorResponseDto"];
+                };
+            };
+        };
+    };
+    MonitorsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorResponseDto"];
+                };
+            };
+        };
+    };
+    MonitorsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitorsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMonitorDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorResponseDto"];
+                };
+            };
+        };
+    };
+    MonitorsController_pause: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorResponseDto"];
+                };
+            };
+        };
+    };
+    MonitorsController_resume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorResponseDto"];
+                };
             };
         };
     };

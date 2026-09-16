@@ -16,6 +16,8 @@ import { HealthModule } from '@health/health.module';
 import { UsersModule } from '@modules/users/users.module';
 import { OrganizationsModule } from '@modules/organizations/organizations.module';
 import { AuthModule } from '@modules/auth/auth.module';
+import { ProjectsModule } from '@modules/projects/projects.module';
+import { MonitorsModule } from '@modules/monitors/monitors.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { AuthModule } from '@modules/auth/auth.module';
     UsersModule,
     OrganizationsModule,
     AuthModule,
+    ProjectsModule,
+    MonitorsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: TypeOrmErrorFilter },

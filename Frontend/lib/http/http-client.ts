@@ -56,16 +56,20 @@ async function refreshSession(): Promise<boolean> {
   return refreshInFlight;
 }
 
+function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  const messageOk =
+    typeof candidate.message === 'string' ||
+    (Array.isArray(candidate.message) && candidate.message.every((m) => typeof m === 'string'));
+  return typeof candidate.code === 'string' && messageOk;
+}
+
 async function parseErrorPayload(res: Response): Promise<ApiErrorPayload> {
   try {
     const body: unknown = await res.json();
-    if (
-      typeof body === 'object' &&
-      body !== null &&
-      'error' in body &&
-      typeof (body as { error: unknown }).error === 'object'
-    ) {
-      return (body as { error: ApiErrorPayload }).error;
+    if (isApiErrorPayload(body)) {
+      return body;
     }
   } catch {
     // fall through to generic payload
