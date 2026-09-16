@@ -30,6 +30,9 @@ coverage/
 *.int-spec.ts
 *.test.ts
 *.test.tsx
+test-results/
+playwright-report/
+blob-report/
 
 # editors
 .vscode/*
