@@ -12,10 +12,10 @@ const RETENTION_COUNT = 500;
 export class NotificationQueueProducer {
   constructor(@InjectQueue(QUEUE_NAMES.NOTIFICATION) private readonly queue: Queue<NotificationJobPayload>) {}
 
-  async enqueueDelivery(alertId: string, channelId: string, correlationId: string): Promise<void> {
+  async enqueueDelivery(organizationId: string, alertId: string, channelId: string, correlationId: string): Promise<void> {
     await this.queue.add(
       QUEUE_NAMES.NOTIFICATION,
-      { kind: 'DELIVERY', alertId, channelId, correlationId },
+      { kind: 'DELIVERY', organizationId, alertId, channelId, correlationId },
       {
         jobId: notificationJobId(alertId, channelId),
         attempts: DELIVERY_ATTEMPTS,

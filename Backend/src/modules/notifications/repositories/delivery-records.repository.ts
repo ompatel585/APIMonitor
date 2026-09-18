@@ -13,6 +13,11 @@ type CreateDeliveryRecordData = {
   correlationId: string;
 };
 
+type CursorPage = {
+  limit: number;
+  cursor?: { createdAt: Date; id: string };
+};
+
 @Injectable()
 export class DeliveryRecordsRepository {
   constructor(@InjectRepository(DeliveryRecord) private readonly repository: Repository<DeliveryRecord>) {}
@@ -23,20 +28,40 @@ export class DeliveryRecordsRepository {
   }
 
   /**
-   * Delivery history for a channel, newest first. `channelId` is required —
-   * there is no unscoped listing — and the controller resolves the channel
-   * through the tenant-scoped `NotificationChannelsService` first, so an id
-   * from another organization never reaches this query.
+   * Delivery history for a channel, newest first, cursor-paginated. There is
+   * no unscoped listing — the controller resolves `channelId` through the
+   * tenant-scoped `NotificationChannelsService` first, so an id from another
+   * organization never reaches this query.
    */
-  async listByChannel(channelId: string, limit: number): Promise<DeliveryRecord[]> {
-    return this.repository.find({
-      where: { channelId },
-      order: { createdAt: 'DESC' },
-      take: limit,
-    });
+  async listByChannel(channelId: string, page: CursorPage): Promise<DeliveryRecord[]> {
+    return this.listBy('channel_id', channelId, page);
   }
 
-  async listByAlert(alertId: string): Promise<DeliveryRecord[]> {
-    return this.repository.find({ where: { alertId }, order: { createdAt: 'DESC' } });
+  /**
+   * Delivery history for an alert, newest first, cursor-paginated. Same
+   * tenant-scoping precondition as `listByChannel` — the controller resolves
+   * `alertId` through the tenant-scoped `AlertsService`/`AlertsRepository`
+   * first.
+   */
+  async listByAlert(alertId: string, page: CursorPage): Promise<DeliveryRecord[]> {
+    return this.listBy('alert_id', alertId, page);
+  }
+
+  private async listBy(column: 'channel_id' | 'alert_id', value: string, page: CursorPage): Promise<DeliveryRecord[]> {
+    const qb = this.repository
+      .createQueryBuilder('record')
+      .where(`record.${column} = :value`, { value })
+      .orderBy('record.created_at', 'DESC')
+      .addOrderBy('record.id', 'DESC')
+      .take(page.limit);
+
+    if (page.cursor) {
+      qb.andWhere('(record.created_at, record.id) < (:createdAt, :id)', {
+        createdAt: page.cursor.createdAt,
+        id: page.cursor.id,
+      });
+    }
+
+    return qb.getMany();
   }
 }

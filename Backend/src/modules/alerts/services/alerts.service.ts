@@ -150,7 +150,7 @@ export class AlertsService {
     }
 
     for (const channelId of channelIds) {
-      await this.notificationQueueProducer.enqueueDelivery(alert.id, channelId, correlationId);
+      await this.notificationQueueProducer.enqueueDelivery(event.organizationId, alert.id, channelId, correlationId);
     }
 
     this.eventEmitter.emit(

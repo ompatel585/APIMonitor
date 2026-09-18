@@ -11,6 +11,7 @@
  */
 export type NotificationDeliveryJobPayload = {
   kind: 'DELIVERY';
+  organizationId: string;
   alertId: string;
   channelId: string;
   correlationId: string;
