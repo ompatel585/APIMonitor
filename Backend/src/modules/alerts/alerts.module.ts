@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EncryptionModule } from '@infrastructure/encryption/encryption.module';
 import { MailerModule } from '@infrastructure/mailer/mailer.module';
+import { QueueModule } from '@infrastructure/queue/queue.module';
 import { AlertRule } from './entities/alert-rule.entity';
 import { Alert } from './entities/alert.entity';
 import { NotificationChannel } from './entities/notification-channel.entity';
@@ -27,7 +28,7 @@ import { IncidentAcknowledgedListener } from './listeners/incident-acknowledged.
  * `services/alert-rule-evaluator.ts` is a plain function, not a provider.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([AlertRule, Alert, NotificationChannel]), EncryptionModule, MailerModule],
+  imports: [TypeOrmModule.forFeature([AlertRule, Alert, NotificationChannel]), EncryptionModule, MailerModule, QueueModule],
   providers: [
     AlertRulesRepository,
     AlertsRepository,

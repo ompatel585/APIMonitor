@@ -20,6 +20,8 @@ import { AuthModule } from '@modules/auth/auth.module';
 import { ProjectsHttpModule } from '@modules/projects/projects-http.module';
 import { MonitorsHttpModule } from '@modules/monitors/monitors-http.module';
 import { IncidentsHttpModule } from '@modules/incidents/incidents-http.module';
+import { AlertsHttpModule } from '@modules/alerts/alerts-http.module';
+import { NotificationsHttpModule } from '@modules/notifications/notifications-http.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { IncidentsHttpModule } from '@modules/incidents/incidents-http.module';
     ProjectsHttpModule,
     MonitorsHttpModule,
     IncidentsHttpModule,
+    AlertsHttpModule,
+    NotificationsHttpModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: TypeOrmErrorFilter },

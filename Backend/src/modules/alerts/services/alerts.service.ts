@@ -194,4 +194,45 @@ export class AlertsService {
     const rules = await this.alertRulesRepository.list(organizationId);
     return rules.filter((rule) => rule.isActive && rule.trigger === trigger && rule.escalation !== null);
   }
+
+  /**
+   * Fires an escalation: notifies the rule's escalation tier
+   * (`rule.escalation.channelIds`), which is a distinct set from
+   * `rule.channelIds` and is never routed through the normal
+   * evaluate()/dedup pipeline (alerts/CLAUDE.md §5). The caller (the
+   * notification worker's escalation job) has already re-verified the
+   * incident is still unacknowledged/unresolved before calling this — this
+   * method trusts that check and only re-validates that the rule itself is
+   * still active and still carries an escalation policy, since a rule can be
+   * edited or deactivated between scheduling and firing.
+   */
+  async fireEscalation(
+    organizationId: string,
+    ruleId: string,
+    incident: { id: string; projectId: string; monitorId: string; cause: string },
+  ): Promise<void> {
+    const rule = await this.alertRulesRepository.findByIdOrThrow(organizationId, ruleId);
+    if (!rule || !rule.isActive || !rule.escalation) {
+      this.logger.log({
+        msg: 'escalation skipped: rule no longer active or no longer carries an escalation policy',
+        organizationId,
+        ruleId,
+        incidentId: incident.id,
+      });
+      return;
+    }
+
+    const event: AlertableEvent = {
+      trigger: 'INCIDENT_CREATED',
+      organizationId,
+      projectId: incident.projectId,
+      monitorId: incident.monitorId,
+      incidentId: incident.id,
+      cause: incident.cause,
+      isFlapping: false,
+      isAcknowledged: false,
+    };
+
+    await this.fireRule(event, rule, rule.escalation.channelIds);
+  }
 }
