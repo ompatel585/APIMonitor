@@ -8,6 +8,7 @@ import { HttpModule } from '@infrastructure/http/http.module';
 import { QueueModule } from '@infrastructure/queue/queue.module';
 import { MonitorsModule } from '@modules/monitors/monitors.module';
 import { MonitorChecksModule } from '@modules/monitor-checks/monitor-checks.module';
+import { IncidentsModule } from '@modules/incidents/incidents.module';
 import { WorkerHealthModule } from './health/worker-health.module';
 import { CheckExecutorService } from './monitor-check/check-executor.service';
 import { MonitorCheckProcessor } from './monitor-check/monitor-check.processor';
@@ -28,6 +29,7 @@ import { MonitorCheckProcessor } from './monitor-check/monitor-check.processor';
     QueueModule,
     MonitorsModule,
     MonitorChecksModule,
+    IncidentsModule,
     WorkerHealthModule,
   ],
   providers: [CheckExecutorService, MonitorCheckProcessor],
