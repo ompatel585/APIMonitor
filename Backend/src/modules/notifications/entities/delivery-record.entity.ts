@@ -1,6 +1,6 @@
 import { BeforeInsert, Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm';
 import { uuidV7 } from '@infrastructure/database/uuid-v7.util';
-import { DELIVERY_STATUSES, type DeliveryStatus } from '../constants/delivery-status';
+import type { DeliveryStatus } from '../constants/delivery-status';
 
 /**
  * Append-only delivery receipt, one row per attempted delivery (a retried job

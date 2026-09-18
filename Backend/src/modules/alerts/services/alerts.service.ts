@@ -14,7 +14,6 @@ import { ALERT_TRIGGERED_EVENT, AlertTriggeredEvent } from '../events/alert-trig
 
 const DEDUP_TTL_SECONDS = 24 * 60 * 60; // covers the expected lifetime of an incident
 const DEDUP_KEY_PREFIX = 'alerts:dedup';
-const THROTTLE_KEY_PREFIX = 'alerts:throttle';
 
 function dedupRedisKey(ruleId: string, incidentId: string, channelId: string): string {
   return `${DEDUP_KEY_PREFIX}:${ruleId}:${incidentId}:${channelId}`;
@@ -187,7 +186,7 @@ export class AlertsService {
    * organization that carries an escalation policy. Best-effort — see
    * `NotificationQueueProducer.cancelEscalation` and alerts/CLAUDE.md §5.
    */
-  async cancelEscalations(organizationId: string, incidentId: string, ruleIds: string[]): Promise<void> {
+  async cancelEscalations(_organizationId: string, incidentId: string, ruleIds: string[]): Promise<void> {
     await Promise.all(ruleIds.map((ruleId) => this.notificationQueueProducer.cancelEscalation(incidentId, ruleId)));
   }
 

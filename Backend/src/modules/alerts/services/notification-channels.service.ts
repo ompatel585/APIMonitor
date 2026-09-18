@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { NotFoundDomainException } from '@common/exceptions/not-found.exception';
 import { ConflictDomainException } from '@common/exceptions/conflict.exception';
 import { ValidationDomainException } from '@common/exceptions/validation.exception';
@@ -20,8 +20,6 @@ type CreateChannelInput = {
 
 @Injectable()
 export class NotificationChannelsService {
-  private readonly logger = new Logger(NotificationChannelsService.name);
-
   constructor(
     private readonly notificationChannelsRepository: NotificationChannelsRepository,
     private readonly alertRulesRepository: AlertRulesRepository,
