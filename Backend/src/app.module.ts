@@ -19,6 +19,7 @@ import { OrganizationsModule } from '@modules/organizations/organizations.module
 import { AuthModule } from '@modules/auth/auth.module';
 import { ProjectsHttpModule } from '@modules/projects/projects-http.module';
 import { MonitorsHttpModule } from '@modules/monitors/monitors-http.module';
+import { IncidentsHttpModule } from '@modules/incidents/incidents-http.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { MonitorsHttpModule } from '@modules/monitors/monitors-http.module';
     AuthModule,
     ProjectsHttpModule,
     MonitorsHttpModule,
+    IncidentsHttpModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: TypeOrmErrorFilter },

@@ -1,0 +1,26 @@
+export const INCIDENT_STATUSES = {
+  OPEN: 'OPEN',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  RESOLVED: 'RESOLVED',
+} as const;
+
+export type IncidentStatus = (typeof INCIDENT_STATUSES)[keyof typeof INCIDENT_STATUSES];
+
+export const INCIDENT_SEVERITIES = {
+  MINOR: 'MINOR',
+  MAJOR: 'MAJOR',
+  CRITICAL: 'CRITICAL',
+} as const;
+
+export type IncidentSeverity = (typeof INCIDENT_SEVERITIES)[keyof typeof INCIDENT_SEVERITIES];
+
+export const INCIDENT_EVENT_TYPES = {
+  OPENED: 'OPENED',
+  FAILURE_OBSERVED: 'FAILURE_OBSERVED',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  COMMENT_ADDED: 'COMMENT_ADDED',
+  RESOLVED: 'RESOLVED',
+  AUTO_RESOLVED: 'AUTO_RESOLVED',
+} as const;
+
+export type IncidentEventType = (typeof INCIDENT_EVENT_TYPES)[keyof typeof INCIDENT_EVENT_TYPES];

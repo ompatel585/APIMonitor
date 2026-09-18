@@ -404,6 +404,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{orgId}/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["IncidentsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/incidents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["IncidentsController_findOne"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/incidents/{id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["IncidentsController_timeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/incidents/{id}/actions/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["IncidentsController_acknowledge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{orgId}/incidents/{id}/actions/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["IncidentsController_resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -542,6 +622,41 @@ export interface components {
             consecutiveFailureThreshold?: number;
             consecutiveSuccessThreshold?: number;
             isActive?: boolean;
+        };
+        CursorPageDto: {
+            items: unknown[][];
+            nextCursor: string | null;
+        };
+        IncidentResponseDto: {
+            id: string;
+            organizationId: string;
+            projectId: string;
+            monitorId: string;
+            /** @enum {string} */
+            status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED";
+            /** @enum {string} */
+            cause: "TIMEOUT" | "CONNECTION_ERROR" | "TLS_ERROR" | "STATUS_CODE" | "ASSERTION_FAILED" | "DEGRADED";
+            /** @enum {string} */
+            severity: "MINOR" | "MAJOR" | "CRITICAL";
+            startedAt: string;
+            acknowledgedAt: string | null;
+            acknowledgedBy: string | null;
+            resolvedAt: string | null;
+            resolvedBy: string | null;
+            durationSeconds: number | null;
+            failureCount: number;
+            isFlapping: boolean;
+        };
+        IncidentEventResponseDto: {
+            id: string;
+            /** @enum {string} */
+            type: "OPENED" | "FAILURE_OBSERVED" | "ACKNOWLEDGED" | "COMMENT_ADDED" | "RESOLVED" | "AUTO_RESOLVED";
+            message: string | null;
+            actorId: string | null;
+            metadata: {
+                [key: string]: unknown;
+            } | null;
+            createdAt: string;
         };
     };
     responses: never;
@@ -1348,6 +1463,122 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MonitorResponseDto"];
+                };
+            };
+        };
+    };
+    IncidentsController_list: {
+        parameters: {
+            query?: {
+                limit?: number;
+                /** @description Opaque cursor from a previous page */
+                cursor?: string;
+                projectId?: string;
+                monitorId?: string;
+                status?: "OPEN" | "ACKNOWLEDGED" | "RESOLVED";
+            };
+            header?: never;
+            path: {
+                orgId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CursorPageDto"];
+                };
+            };
+        };
+    };
+    IncidentsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentResponseDto"];
+                };
+            };
+        };
+    };
+    IncidentsController_timeline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentEventResponseDto"][];
+                };
+            };
+        };
+    };
+    IncidentsController_acknowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentResponseDto"];
+                };
+            };
+        };
+    };
+    IncidentsController_resolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentResponseDto"];
                 };
             };
         };

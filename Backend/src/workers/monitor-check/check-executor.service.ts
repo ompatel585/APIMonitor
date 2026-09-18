@@ -66,6 +66,7 @@ export class CheckExecutorService {
       statusCode: result.statusCode,
       latencyMs: result.latencyMs,
       errorMessage: result.errorMessage,
+      cause: result.cause,
       correlationId: payload.correlationId,
     });
   }

@@ -4,6 +4,7 @@ import { TransactionService } from '@infrastructure/database/transaction.service
 import { MonitorsService } from '@modules/monitors/services/monitors.service';
 import { evaluate, type CheckOutcome } from '@modules/monitors/services/monitor-status-evaluator';
 import { NotFoundDomainException } from '@common/exceptions/not-found.exception';
+import type { IncidentCause } from '@modules/incidents/constants/incident-cause';
 import { MonitorChecksRepository } from '../repositories/monitor-checks.repository';
 import { MonitorCheckCompletedEvent, MONITOR_CHECK_COMPLETED_EVENT } from '../events/monitor-check-completed.event';
 
@@ -16,6 +17,7 @@ export type RecordCheckInput = {
   statusCode: number | null;
   latencyMs: number;
   errorMessage: string | null;
+  cause: IncidentCause | null;
   correlationId: string;
 };
 
@@ -41,7 +43,7 @@ export class MonitorChecksService {
         throw new NotFoundDomainException('Monitor');
       }
 
-      await this.monitorChecksRepository.create(
+      const check = await this.monitorChecksRepository.create(
         {
           organizationId: input.organizationId,
           monitorId: input.monitorId,
@@ -77,15 +79,18 @@ export class MonitorChecksService {
         manager,
       );
 
-      return { previousStatus, nextStatus };
+      return { previousStatus, nextStatus, projectId: monitor.projectId, checkId: check.id };
     });
 
     this.eventEmitter.emit(
       MONITOR_CHECK_COMPLETED_EVENT,
       new MonitorCheckCompletedEvent(
         input.organizationId,
+        outcome.projectId,
         input.monitorId,
+        outcome.checkId,
         input.succeeded,
+        input.cause,
         outcome.previousStatus,
         outcome.nextStatus,
         input.correlationId,
