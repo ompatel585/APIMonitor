@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { appConfig } from './app.config';
 import { authConfig } from './auth.config';
 import { databaseConfig } from './database.config';
+import { encryptionConfig } from './encryption.config';
 import { mailConfig } from './mail.config';
 import { monitorChecksConfig } from './monitor-checks.config';
 import { queueConfig } from './queue.config';
@@ -15,7 +16,16 @@ import { validateEnv } from './validation';
       isGlobal: true,
       cache: true,
       validate: validateEnv,
-      load: [appConfig, authConfig, databaseConfig, redisConfig, queueConfig, mailConfig, monitorChecksConfig],
+      load: [
+        appConfig,
+        authConfig,
+        databaseConfig,
+        redisConfig,
+        queueConfig,
+        mailConfig,
+        monitorChecksConfig,
+        encryptionConfig,
+      ],
     }),
   ],
 })

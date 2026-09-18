@@ -14,6 +14,7 @@ import { INCIDENT_EVENT_TYPES, INCIDENT_SEVERITIES } from '../constants/incident
 import type { IncidentCause } from '../constants/incident-cause';
 import { INCIDENT_CREATED_EVENT, IncidentCreatedEvent } from '../events/incident-created.event';
 import { INCIDENT_RESOLVED_EVENT, IncidentResolvedEvent } from '../events/incident-resolved.event';
+import { INCIDENT_ACKNOWLEDGED_EVENT, IncidentAcknowledgedEvent } from '../events/incident-acknowledged.event';
 
 const LOCK_TTL_SECONDS = 10;
 const FAILURE_OBSERVED_THROTTLE_MS = 5 * 60_000;
@@ -96,7 +97,14 @@ export class IncidentsService {
       if (created) {
         this.eventEmitter.emit(
           INCIDENT_CREATED_EVENT,
-          new IncidentCreatedEvent(created.id, event.organizationId, event.projectId, event.monitorId, cause),
+          new IncidentCreatedEvent(
+            created.id,
+            event.organizationId,
+            event.projectId,
+            event.monitorId,
+            cause,
+            created.isFlapping,
+          ),
         );
         return;
       }
@@ -280,6 +288,11 @@ export class IncidentsService {
         manager,
       );
     });
+
+    this.eventEmitter.emit(
+      INCIDENT_ACKNOWLEDGED_EVENT,
+      new IncidentAcknowledgedEvent(id, organizationId, incident.projectId, incident.monitorId, actorId),
+    );
 
     return this.findByIdOrThrow(organizationId, id);
   }

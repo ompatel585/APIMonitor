@@ -1,5 +1,31 @@
 import { plainToInstance } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min, validateSync } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min, Validate, validateSync } from 'class-validator';
+import type { ValidationArguments, ValidatorConstraintInterface } from 'class-validator';
+import { ValidatorConstraint } from 'class-validator';
+
+/**
+ * ENCRYPTION_KEY must decode (base64) to exactly 32 bytes — the key length
+ * AES-256-GCM requires. Validated here so a missing or malformed key crashes
+ * startup immediately, per this repo's "no production fallback for a secret"
+ * rule, rather than failing lazily the first time a channel secret is encrypted.
+ */
+@ValidatorConstraint({ name: 'isBase64EncryptionKey', async: false })
+class IsBase64EncryptionKeyConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (typeof value !== 'string' || value.length === 0) {
+      return false;
+    }
+    try {
+      return Buffer.from(value, 'base64').length === 32;
+    } catch {
+      return false;
+    }
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} must be a base64-encoded 32-byte key`;
+  }
+}
 
 enum NodeEnv {
   Development = 'development',
@@ -82,6 +108,10 @@ class EnvironmentVariables {
   @IsInt()
   @Min(1)
   MONITOR_CHECKS_RETENTION_DAYS?: number;
+
+  @IsString()
+  @Validate(IsBase64EncryptionKeyConstraint)
+  ENCRYPTION_KEY!: string;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvironmentVariables {

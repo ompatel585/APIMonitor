@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import type { QueueConfig } from '@config/queue.config';
 import { QUEUE_NAMES } from './queue.constants';
 import { MonitorCheckQueueProducer } from './monitor-check-queue.producer';
+import { NotificationQueueProducer } from './notification-queue.producer';
 
 @Module({
   imports: [
@@ -20,9 +21,9 @@ import { MonitorCheckQueueProducer } from './monitor-check-queue.producer';
         };
       },
     }),
-    BullModule.registerQueue({ name: QUEUE_NAMES.MONITOR_CHECK }),
+    BullModule.registerQueue({ name: QUEUE_NAMES.MONITOR_CHECK }, { name: QUEUE_NAMES.NOTIFICATION }),
   ],
-  providers: [MonitorCheckQueueProducer],
-  exports: [BullModule, MonitorCheckQueueProducer],
+  providers: [MonitorCheckQueueProducer, NotificationQueueProducer],
+  exports: [BullModule, MonitorCheckQueueProducer, NotificationQueueProducer],
 })
 export class QueueModule {}

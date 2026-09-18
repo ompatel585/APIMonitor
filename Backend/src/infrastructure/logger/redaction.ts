@@ -11,4 +11,5 @@ export const REDACTION_PATHS = [
   '*.secret',
   '*.webhookSecret',
   '*.databaseUrl',
+  '*.encryptedSecret',
 ];
